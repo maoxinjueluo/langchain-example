@@ -1,0 +1,159 @@
+{
+  "platform": "trae",
+  "version": "1.0.0",
+  "config": {
+    "paths": {
+      "root": ".trae",
+      "skillPath": "skills/ui-ux-pro-max",
+      "dataPath": "data",
+      "scriptsPath": "scripts",
+      "templatesPath": "templates"
+    }
+  },
+  "scripts": {
+    "search": "skills/ui-ux-pro-max/scripts/search.py",
+    "designSystem": "skills/ui-ux-pro-max/scripts/design_system.py"
+  },
+  "commands": [
+    {
+      "name": "search",
+      "description": "Search UI/UX content by domain",
+      "usage": "python3 scripts/search.py <query> [--domain <domain>] [--max-results <n>]",
+      "params": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        {
+          "name": "domain",
+          "type": "string",
+          "required": false,
+          "description": "Search domain (style, color, typography, etc.)"
+        },
+        {
+          "name": "max-results",
+          "type": "number",
+          "required": false,
+          "description": "Maximum number of results"
+        }
+      ]
+    },
+    {
+      "name": "design-system",
+      "description": "Generate complete design system",
+      "usage": "python3 scripts/design_system.py <product_type> [--project <name>] [--persist]",
+      "params": [
+        {
+          "name": "product_type",
+          "type": "string",
+          "required": true,
+          "description": "Product type and keywords"
+        },
+        {
+          "name": "project",
+          "type": "string",
+          "required": false,
+          "description": "Project name for persistence"
+        },
+        {
+          "name": "persist",
+          "type": "boolean",
+          "required": false,
+          "description": "Persist design system to files"
+        }
+      ]
+    },
+    {
+      "name": "stack-search",
+      "description": "Search stack-specific guidelines",
+      "usage": "python3 scripts/search.py <query> --stack <stack>",
+      "params": [
+        {
+          "name": "query",
+          "type": "string",
+          "required": true,
+          "description": "Search query"
+        },
+        {
+          "name": "stack",
+          "type": "string",
+          "required": true,
+          "description": "Technology stack (react-native)"
+        }
+      ]
+    }
+  ],
+  "domains": [
+    "style",
+    "color",
+    "typography",
+    "product",
+    "landing",
+    "chart",
+    "ux",
+    "google-fonts",
+    "react",
+    "web",
+    "prompt"
+  ],
+  "stacks": [
+    "react-native"
+  ],
+  "priority": "high",
+  "skillOrWorkflow": "Skill",
+  "categories": [
+    "UI/UX Design",
+    "Web Development",
+    "Mobile Development",
+    "Accessibility",
+    "Performance Optimization"
+  ],
+  "tags": [
+    "ui",
+    "ux",
+    "design",
+    "web",
+    "mobile",
+    "accessibility",
+    "performance",
+    "react",
+    "react-native"
+  ],
+  "description": "UI/UX design intelligence for web and mobile. Includes 50+ styles, 161 color palettes, 57 font pairings, 161 product types, 99 UX guidelines, and 25 chart types across 10 stacks.",
+  "longDescription": "Comprehensive design guide for web and mobile applications. Contains 50+ styles, 161 color palettes, 57 font pairings, 161 product types with reasoning rules, 99 UX guidelines, and 25 chart types across 10 technology stacks. Searchable database with priority-based recommendations.",
+  "keywords": [
+    "ui",
+    "ux",
+    "design",
+    "web",
+    "mobile",
+    "accessibility",
+    "performance",
+    "react",
+    "react-native",
+    "color",
+    "typography",
+    "layout",
+    "animation",
+    "charts"
+  ],
+  "examples": [
+    {
+      "title": "Generate design system for fintech app",
+      "command": "python3 scripts/search.py \"fintech banking\" --design-system -p \"Finance App\"",
+      "description": "Creates a complete design system for a fintech banking application"
+    },
+    {
+      "title": "Search for dark mode styles",
+      "command": "python3 scripts/search.py \"dark mode minimal\" --domain style",
+      "description": "Finds dark mode styles with minimal design"
+    },
+    {
+      "title": "Get React Native performance tips",
+      "command": "python3 scripts/search.py \"list performance\" --stack react-native",
+      "description": "Retrieves performance optimization tips for React Native lists"
+    }
+  ]
+}
