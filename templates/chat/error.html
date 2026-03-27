@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block title %}请求失败{% endblock %}
+
+{% block body %}
+  <div class="card" style="max-width:720px;margin:0 auto">
+    <h1 class="title">请求失败</h1>
+    <div class="alert alert-error" role="alert">{{ error }}</div>
+    <div style="margin-top:16px">
+      <a class="btn btn-primary" href="/chat">返回</a>
+    </div>
+  </div>
+{% endblock %}
+

@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+
+{% block title %}智能问答{% endblock %}
+
+{% block body %}
+  <div class="row" style="align-items:flex-start;gap:16px">
+    <div class="card" style="width:320px;padding:16px">
+      <div class="row">
+        <div style="font-weight:800">会话</div>
+        <a class="link" href="/">首页</a>
+      </div>
+      <div style="margin-top:10px" class="muted">{{ user.email }}</div>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+        {% for c in conversations %}
+          <a href="/chat?c={{ c.id }}" class="card" style="padding:10px 12px;text-decoration:none;color:inherit">
+            <div style="font-weight:700;font-size:14px">{{ c.title or "未命名会话" }}</div>
+            <div class="muted" style="font-size:12px;margin-top:2px">{{ c.created_at }}</div>
+          </a>
+        {% endfor %}
+        {% if conversations|length == 0 %}
+          <div class="muted" style="font-size:12px">还没有会话，发起一次提问即可创建。</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card" style="flex:1;min-height:640px;display:flex;flex-direction:column">
+      <div class="row" style="align-items:flex-end">
+        <div>
+          <div class="muted" style="font-size:12px">智能问答</div>
+          <div style="font-weight:800;margin-top:2px">基于知识库检索增强生成（RAG）</div>
+        </div>
+        <form method="post" action="/logout">
+          <button class="btn" type="submit">退出</button>
+        </form>
+      </div>
+
+      <div style="margin-top:14px" class="row">
+        <div style="flex:1">
+          <label class="label">当前知识库</label>
+          <select class="input" form="send-form" name="knowledge_base_id" required>
+            {% for kb in kbs %}
+              <option value="{{ kb.id }}" {% if active_kb_id and kb.id == active_kb_id %}selected{% endif %}>{{ kb.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="width:180px">
+          <label class="label">会话</label>
+          <input class="input" type="text" value="{% if active_conversation %}{{ active_conversation.title or '' }}{% endif %}" disabled />
+        </div>
+      </div>
+
+      <div id="messages-box" style="margin-top:14px;flex:1;overflow:auto;border:1px solid var(--border);border-radius:12px;padding:12px">
+        {% for m in messages %}
+          <div style="margin:10px 0">
+            <div class="muted" style="font-size:12px">{{ m.role }} · {{ m.created_at }}</div>
+            <div style="white-space:pre-wrap">{{ m.content }}</div>
+            {% if m.role == 'assistant' %}
+              <div class="muted" style="font-size:12px;margin-top:6px">
+                {% if m.confidence is not none %}
+                  置信度：{{ '%.2f'|format(m.confidence) }}
+                {% endif %}
+                {% if m.confidence is not none and m.confidence < confidence_threshold %}
+                  · 资料可能不足，建议补充文档或换个问法
+                {% endif %}
+              </div>
+              <div style="margin-top:8px" class="row">
+                <form method="post" action="/chat/favorite">
+                  <input type="hidden" name="message_id" value="{{ m.id }}" />
+                  <button class="btn" type="submit">收藏</button>
+                </form>
+                <form method="post" action="/chat/feedback" class="row" style="gap:6px">
+                  <input type="hidden" name="message_id" value="{{ m.id }}" />
+                  <button class="btn" type="submit" name="is_helpful" value="1">有帮助</button>
+                  <button class="btn" type="submit" name="is_helpful" value="0">无帮助</button>
+                </form>
+              </div>
+              {% if m.citations %}
+                <details style="margin-top:6px">
+                  <summary class="link">引用</summary>
+                  <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+                    {% for c in m.citations %}
+                      <div class="card" style="padding:10px 12px">
+                        <div style="font-weight:700">{{ c.title }}</div>
+                        <div class="muted" style="font-size:12px;margin-top:4px">{{ c.snippet }}</div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% endif %}
+            {% endif %}
+          </div>
+        {% endfor %}
+        {% if messages|length == 0 %}
+          <div class="muted" style="font-size:12px">输入一个问题开始对话。</div>
+        {% endif %}
+      </div>
+
+      <form id="send-form" method="post" action="/chat/send" class="form" style="margin-top:12px">
+        <input type="hidden" name="conversation_id" value="{% if active_conversation %}{{ active_conversation.id }}{% endif %}" />
+        <label class="label">提问</label>
+        <textarea class="input" name="message" rows="3" required style="resize:vertical"></textarea>
+        <button class="btn btn-primary" type="submit">发送</button>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const form = document.getElementById("send-form");
+      const box = document.getElementById("messages-box");
+      if (!form || !box) return;
+      const wsProtocol = location.protocol === "https:" ? "wss" : "ws";
+      let ws = null;
+      let streamingNode = null;
+
+      function ensureWs() {
+        if (ws && ws.readyState === WebSocket.OPEN) return Promise.resolve(ws);
+        return new Promise((resolve, reject) => {
+          ws = new WebSocket(wsProtocol + "://" + location.host + "/ws/chat");
+          ws.onopen = () => resolve(ws);
+          ws.onerror = () => reject(new Error("ws connect failed"));
+          ws.onmessage = (evt) => {
+            const data = JSON.parse(evt.data || "{}");
+            if (data.type === "start") {
+              form.elements.conversation_id.value = data.conversation_id || "";
+            } else if (data.type === "delta") {
+              if (!streamingNode) {
+                const wrap = document.createElement("div");
+                wrap.style.margin = "10px 0";
+                wrap.innerHTML = '<div class="muted" style="font-size:12px">assistant · streaming</div><div style="white-space:pre-wrap"></div>';
+                box.appendChild(wrap);
+                streamingNode = wrap.querySelector("div:last-child");
+              }
+              streamingNode.textContent += data.text || "";
+              box.scrollTop = box.scrollHeight;
+            } else if (data.type === "done") {
+              streamingNode = null;
+              // 渲染代码块
+              if (window.processMessages) {
+                setTimeout(window.processMessages, 100);
+              }
+            } else if (data.type === "error") {
+              alert(data.message || "流式问答失败");
+              streamingNode = null;
+            }
+          };
+        });
+      }
+
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const fd = new FormData(form);
+        const payload = {
+          message: String(fd.get("message") || "").trim(),
+          knowledge_base_id: String(fd.get("knowledge_base_id") || ""),
+          conversation_id: String(fd.get("conversation_id") || ""),
+        };
+        if (!payload.message || !payload.knowledge_base_id) return;
+        const userWrap = document.createElement("div");
+        userWrap.style.margin = "10px 0";
+        userWrap.innerHTML = '<div class="muted" style="font-size:12px">user · now</div><div style="white-space:pre-wrap"></div>';
+        userWrap.querySelector("div:last-child").textContent = payload.message;
+        box.appendChild(userWrap);
+        // 渲染用户消息中的代码块
+        if (window.processMessages) {
+          setTimeout(window.processMessages, 100);
+        }
+        box.scrollTop = box.scrollHeight;
+        form.elements.message.value = "";
+        try {
+          await ensureWs();
+          ws.send(JSON.stringify(payload));
+        } catch (err) {
+          form.submit();
+        }
+      });
+    })();
+  </script>
+{% endblock %}
+

@@ -21,3 +21,8 @@ env/
 *.log
 
 db/*.db
+db/chroma/
+db/uploads/
+storage/
+pgdata/
+db/test.db

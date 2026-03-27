@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>智能问答系统</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="container">
+      <div class="card">
+        <div class="row">
+          <div>
+            <h1 class="title" style="margin:0">智能问答系统</h1>
+            <p class="muted" style="margin:6px 0 0">你好，{{ user.name }}（{{ user.email }}）</p>
+          </div>
+          <form method="post" action="/logout">
+            <button class="btn" type="submit">退出登录</button>
+          </form>
+        </div>
+        <div style="margin-top:16px" class="row">
+          <a class="btn btn-primary" href="/kb">进入知识库管理</a>
+          <a class="btn btn-primary" href="/chat">进入智能问答</a>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

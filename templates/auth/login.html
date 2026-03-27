@@ -1,0 +1,35 @@
+{% extends "layout.html" %}
+
+{% block title %}登录{% endblock %}
+
+{% block body %}
+  <div class="card" style="max-width:520px;margin:0 auto">
+    <h1 class="title">登录</h1>
+    <p class="muted" style="margin:0 0 16px">使用邮箱与密码登录。</p>
+
+    {% if error %}
+      <div class="alert alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login" class="form">
+      <label class="label">邮箱</label>
+      <input class="input" type="email" name="email" autocomplete="email" required />
+
+      <label class="label">密码</label>
+      <input class="input" type="password" name="password" autocomplete="current-password" required />
+
+      <label class="check">
+        <input type="checkbox" name="remember_me" value="1" />
+        <span>记住我</span>
+      </label>
+
+      <button class="btn btn-primary" type="submit">登录</button>
+    </form>
+
+    <div class="row" style="margin-top:16px">
+      <a class="link" href="/register">没有账号？注册</a>
+      <a class="link" href="/forgot">忘记密码</a>
+    </div>
+  </div>
+{% endblock %}
+

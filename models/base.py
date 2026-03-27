@@ -1,9 +1,10 @@
 """Abstract ORM base with common columns."""
 
+import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from sqlalchemy import DateTime, Integer, JSON
+from sqlalchemy import DateTime, Integer, JSON, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from common.const import DEFAULT_STATUS
@@ -24,7 +25,7 @@ class BaseModel(Base):
 
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=_utc_now,

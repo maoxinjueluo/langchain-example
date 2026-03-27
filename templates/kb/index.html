@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+
+{% block title %}知识库管理{% endblock %}
+
+{% block body %}
+  <div class="card">
+    <div class="row">
+      <div>
+        <h1 class="title" style="margin:0">知识库管理</h1>
+        <p class="muted" style="margin:6px 0 0">创建知识库并上传文档完成向量化。</p>
+      </div>
+      <a class="btn" href="/">返回首页</a>
+    </div>
+
+    {% if error %}
+      <div class="alert alert-error" role="alert">{{ error }}</div>
+    {% endif %}
+
+    <form method="get" action="/kb" class="form" style="max-width:720px;margin-bottom:12px">
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:1">
+          <label class="label">关键词</label>
+          <input class="input" type="text" name="keyword" value="{{ keyword or '' }}" placeholder="名称或描述" />
+        </div>
+        <div style="width:180px">
+          <label class="label">分类</label>
+          <input class="input" type="text" name="category" value="{{ category or '' }}" />
+        </div>
+        <div style="width:180px">
+          <label class="label">标签</label>
+          <input class="input" type="text" name="tag" value="{{ tag or '' }}" />
+        </div>
+      </div>
+      <button class="btn" type="submit">搜索</button>
+    </form>
+
+    <form method="post" action="/kb" class="form" style="max-width:720px">
+      <div class="row" style="align-items:flex-end">
+        <div style="flex:1">
+          <label class="label">名称</label>
+          <input class="input" type="text" name="name" required />
+        </div>
+        <div style="width:180px">
+          <label class="label">可见范围</label>
+          <select class="input" name="visibility">
+            <option value="private">仅管理员</option>
+            <option value="org">全员</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="label">描述</label>
+        <input class="input" type="text" name="description" />
+      </div>
+      <div class="row">
+        <div style="width:200px">
+          <label class="label">分类</label>
+          <input class="input" type="text" name="category" />
+        </div>
+        <div style="flex:1">
+          <label class="label">标签（逗号分隔）</label>
+          <input class="input" type="text" name="tags" />
+        </div>
+      </div>
+      <button class="btn btn-primary" type="submit">新建知识库</button>
+    </form>
+
+    <div style="margin-top:18px">
+      <div class="muted" style="font-size:12px;margin-bottom:8px">知识库列表</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        {% for kb in kbs %}
+          <a class="card" href="/kb/{{ kb.id }}" style="text-decoration:none;color:inherit;padding:16px">
+            <div class="row" style="gap:8px">
+              <div style="flex:1">
+                <div style="font-weight:700">{{ kb.name }}</div>
+                <div class="muted" style="font-size:12px;margin-top:4px">{{ kb.description or "" }}</div>
+              </div>
+              <span class="muted" style="font-size:12px">{{ kb.visibility }}</span>
+            </div>
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+{% endblock %}
+

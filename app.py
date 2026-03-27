@@ -10,10 +10,11 @@ from contextlib import asynccontextmanager
 from typing import Dict
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
-from common.const import APP_TITLE, APP_HOST, APP_PORT, API_PREFIX, HEALTH_ENDPOINT, MESSAGE_OK
+from common.const import APP_TITLE, APP_HOST, APP_PORT, HEALTH_ENDPOINT, MESSAGE_OK
 from database import engine, init_db
-from routers.user import user_router
+from routers import auth_pages_router, chat_pages_router, kb_pages_router, pages_router
 
 
 @asynccontextmanager
@@ -24,7 +25,11 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
-app.include_router(user_router, prefix=API_PREFIX)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(auth_pages_router)
+app.include_router(chat_pages_router)
+app.include_router(kb_pages_router)
+app.include_router(pages_router)
 
 
 @app.get(HEALTH_ENDPOINT)
