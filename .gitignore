@@ -2,11 +2,6 @@
 !.gitignore
 !.gitattributes
 !.github/
-!.trae/
-!.trae/rules/
-!.trae/rules/*.md
-!.trae/skills/
-!.trae/skills/**
 
 __pycache__/
 *.py[cod]
@@ -17,12 +12,10 @@ venv/
 env/
 
 .idea/
+.trae/
+db/
 
 *.log
 
-db/*.db
-db/chroma/
-db/uploads/
 storage/
 pgdata/
-db/test.db

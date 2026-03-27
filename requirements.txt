@@ -86,10 +86,11 @@ pydantic==2.12.5
 pydantic-settings==2.13.1
 pydantic_core==2.41.5
 Pygments==2.19.2
-PyPika==0.51.1
-pyproject_hooks==1.2.0
+PyJWT==2.8.0
+pypdf==4.2.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+python-docx==1.0.1
 PyYAML==6.0.3
 referencing==0.37.0
 requests==2.32.5
@@ -112,7 +113,7 @@ typing_extensions==4.15.0
 urllib3==2.6.3
 uuid_utils==0.14.1
 uvicorn==0.42.0
-uvloop==0.22.1
+#uvloop==0.22.1
 watchfiles==1.1.1
 websocket-client==1.9.0
 websockets==16.0
@@ -121,3 +122,5 @@ xxhash==3.6.0
 yarl==1.23.0
 zipp==3.23.0
 zstandard==0.25.0
+python-multipart==0.0.22
+dashscope==1.25.15

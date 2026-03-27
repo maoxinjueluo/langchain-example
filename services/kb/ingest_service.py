@@ -1,8 +1,9 @@
+import traceback
 from pathlib import Path
 from typing import List, Optional
 
 import anyio
-# from docx import Document as DocxDocument
+from docx import Document as DocxDocument
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from pypdf import PdfReader
@@ -14,6 +15,7 @@ from common.settings import get_settings
 from models.chunk import DocChunk
 from models.kb import KBDocument, KBTag, KnowledgeBase, KnowledgeBaseTag
 from services.llm.llm_factory import get_chroma_store, get_embeddings
+from loguru import logger
 
 
 def _read_txt(path: Path) -> str:
@@ -267,12 +269,13 @@ class KBIngestService:
             await self._session.flush()
             store = get_chroma_store(collection_name=f"kb_{doc.knowledge_base_id}")
             ids = [d.metadata["chunk_id"] for d in lc_docs]
-            await anyio.to_thread.run_sync(store.add_documents, lc_docs, ids)
+            await anyio.to_thread.run_sync(store.add_documents, lc_docs)
             await self._session.execute(
                 update(KBDocument).where(KBDocument.id == doc.id).values(processing_status="ready")
             )
             await self._session.flush()
         except Exception as e:
+            logger.error(f'处理失败，详细原因：{traceback.format_exc()}')
             await self._session.execute(
                 update(KBDocument)
                 .where(KBDocument.id == doc.id)
@@ -296,3 +299,13 @@ class KBIngestService:
         doc.status = 0
         await self._session.flush()
         return True
+
+
+if __name__ == '__main__':
+    import os
+    base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    file = os.path.join(
+        base_path, 'db', 'uploads', 'kb', 'faee97e0-92e0-4278-84fc-452195c3e9d6',
+        '64d8552ee31435ea612f981110f6bdfb_滕王阁序.docx'
+    )
+    print(_read_docx(file))

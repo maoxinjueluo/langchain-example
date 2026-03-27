@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -6,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database import get_session
 from routers.deps import require_admin
 from services.kb.ingest_service import KBIngestService
+from loguru import logger
 
 
 templates = Jinja2Templates(directory="templates")
@@ -123,6 +126,7 @@ async def kb_upload(
     try:
         await service.ingest_upload(kb_id=kb_id, upload=file)
     except Exception as e:
+        logger.error(f'上传失败，详细原因：{traceback.format_exc()}')
         docs = await service.list_documents(kb_id)
         return templates.TemplateResponse(
             request,
