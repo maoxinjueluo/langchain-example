@@ -1,10 +1,11 @@
 import traceback
 
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, Form, Query, Request, UploadFile, File
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from common.const import KBVisibility
 from database import get_session
 from routers.deps import require_admin
 from services.kb.ingest_service import KBIngestService
@@ -44,7 +45,7 @@ async def kb_create(
     request: Request,
     name: str = Form(...),
     description: str = Form(default=""),
-    visibility: str = Form(default="private"),
+    visibility: str = Form(default=KBVisibility.PRIVATE.value),
     category: str = Form(default=""),
     tags: str = Form(default=""),
     session: AsyncSession = Depends(get_session),

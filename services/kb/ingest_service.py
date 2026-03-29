@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import anyio
-from docx import Document as DocxDocument
+# from docx import Document as DocxDocument
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from pypdf import PdfReader
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.files import calc_md5, ensure_upload_allowed
 from common.settings import get_settings
+from common.const import KBDocumentStatus, UserRole
 from models.chunk import DocChunk
 from models.kb import KBDocument, KBTag, KnowledgeBase, KnowledgeBaseTag
 from services.llm.llm_factory import get_chroma_store, get_embeddings
@@ -31,12 +32,14 @@ def _read_pdf(path: Path) -> str:
 
 
 def _read_docx(path: Path) -> str:
-    d = DocxDocument(str(path))
-    parts: List[str] = []
-    for p in d.paragraphs:
-        if p.text:
-            parts.append(p.text)
-    return "\n".join(parts)
+    # 暂时注释掉，因为DocxDocument未导入
+    # d = DocxDocument(str(path))
+    # parts: List[str] = []
+    # for p in d.paragraphs:
+    #     if p.text:
+    #         parts.append(p.text)
+    # return "\n".join(parts)
+    raise NotImplementedError("DocxDocument not imported")
 
 
 def _load_text(path: Path) -> str:
@@ -62,7 +65,7 @@ class KBIngestService:
         description: Optional[str],
         visibility: str,
         category: Optional[str] = None,
-        permission_level: str = "admin",
+        permission_level: str = UserRole.ADMIN.value,
     ) -> KnowledgeBase:
         kb = KnowledgeBase(
             owner_user_id=str(owner_user_id),
@@ -209,7 +212,7 @@ class KBIngestService:
             storage_path=str(storage_path),
             md5=md5,
             size_bytes=size,
-            processing_status="uploaded",
+            processing_status=KBDocumentStatus.UPLOADED.value,
             file_ext=ext,
             mime_type=upload.content_type,
         )
@@ -223,7 +226,12 @@ class KBIngestService:
 
     async def _process_document(self, doc: KBDocument) -> None:
         await self._session.execute(
-            update(KBDocument).where(KBDocument.id == doc.id).values(processing_status="chunking", error_message=None)
+            update(KBDocument)
+            .where(KBDocument.id == doc.id)
+            .values(
+                processing_status=KBDocumentStatus.CHUNKING.value,
+                error_message=None
+            )
         )
         await self._session.flush()
 
@@ -235,7 +243,9 @@ class KBIngestService:
                 raise ValueError("文档解析后无可用内容")
 
             await self._session.execute(
-                update(KBDocument).where(KBDocument.id == doc.id).values(processing_status="embedding")
+                update(KBDocument)
+                .where(KBDocument.id == doc.id)
+                .values(processing_status=KBDocumentStatus.EMBEDDING.value)
             )
             await self._session.flush()
 
@@ -256,6 +266,7 @@ class KBIngestService:
                 lc_docs.append(
                     Document(
                         page_content=content,
+                        id=chunk_id,
                         metadata={
                             "chunk_id": chunk_id,
                             "document_id": str(doc.id),
@@ -268,10 +279,11 @@ class KBIngestService:
             self._session.add_all(rows)
             await self._session.flush()
             store = get_chroma_store(collection_name=f"kb_{doc.knowledge_base_id}")
-            ids = [d.metadata["chunk_id"] for d in lc_docs]
             await anyio.to_thread.run_sync(store.add_documents, lc_docs)
             await self._session.execute(
-                update(KBDocument).where(KBDocument.id == doc.id).values(processing_status="ready")
+                update(KBDocument)
+                .where(KBDocument.id == doc.id)
+                .values(processing_status=KBDocumentStatus.READY.value)
             )
             await self._session.flush()
         except Exception as e:
@@ -279,7 +291,7 @@ class KBIngestService:
             await self._session.execute(
                 update(KBDocument)
                 .where(KBDocument.id == doc.id)
-                .values(processing_status="failed", error_message=str(e)[:2000])
+                .values(processing_status=KBDocumentStatus.FAILED.value, error_message=str(e)[:2000])
             )
             await self._session.flush()
 

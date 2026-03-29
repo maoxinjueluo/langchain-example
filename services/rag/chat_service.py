@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.settings import get_settings
+from common.const import MessageRole
 from models.chat import AnswerFeedback, Conversation, FavoriteQuestion, Message
 from services.llm.llm_factory import get_chat_model, get_chroma_store, get_embeddings
 
@@ -31,13 +32,23 @@ class ChatService:
 
     async def list_conversations(self, user_id: uuid.UUID) -> List[Conversation]:
         result = await self._session.execute(
-            select(Conversation).where(Conversation.user_id == str(user_id), Conversation.status == 1).order_by(Conversation.updated_at.desc())
+            select(Conversation)
+            .where(
+                Conversation.user_id == str(user_id),
+                Conversation.status == 1
+            )
+            .order_by(Conversation.updated_at.desc())
         )
         return list(result.scalars().all())
 
     async def get_conversation(self, user_id: uuid.UUID, conversation_id: uuid.UUID) -> Optional[Conversation]:
         result = await self._session.execute(
-            select(Conversation).where(Conversation.id == conversation_id, Conversation.user_id == str(user_id), Conversation.status == 1)
+            select(Conversation)
+            .where(
+                Conversation.id == conversation_id,
+                Conversation.user_id == str(user_id),
+                Conversation.status == 1
+            )
         )
         return result.scalar_one_or_none()
 
@@ -107,7 +118,7 @@ class ChatService:
         if not conv:
             conv = await self.create_conversation(user_id=user_id, knowledge_base_id=knowledge_base_id, title=msg[:28])
 
-        user_message = Message(conversation_id=str(conv.id), role="user", content=msg)
+        user_message = Message(conversation_id=str(conv.id), role=MessageRole.USER.value, content=msg)
         self._session.add(user_message)
         await self._session.flush()
         await self._session.refresh(user_message)
@@ -127,7 +138,7 @@ class ChatService:
         prompt = f"资料片段：\n{context}\n\n用户问题：{msg}"
         lc_messages = [sys]
         for h in history[-8:]:
-            if h.role == "user":
+            if h.role == MessageRole.USER.value:
                 lc_messages.append(HumanMessage(content=h.content))
         lc_messages.append(HumanMessage(content=prompt))
 
@@ -153,7 +164,7 @@ class ChatService:
 
         assistant_message = Message(
             conversation_id=str(conv.id),
-            role="assistant",
+            role=MessageRole.ASSISTANT.value,
             content=answer_text,
             citations=citations,
             confidence=confidence,

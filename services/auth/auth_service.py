@@ -7,6 +7,7 @@ from typing import Optional
 from common.mailer import send_email
 from common.security import hash_password, token_hash, token_urlsafe, verify_password
 from common.settings import get_settings
+from common.const import UserRole
 from models.auth import EmailVerificationToken, PasswordResetToken, User, UserSession
 
 
@@ -41,7 +42,7 @@ class AuthService:
             raise ValueError("邮箱已注册")
 
         total = (await self._session.execute(select(User.id))).first()
-        role = "superadmin" if total is None else "user"
+        role = UserRole.SUPERADMIN.value if total is None else UserRole.USER.value
 
         user = User(email=email, name=name.strip(), password_hash=hash_password(password), role=role)
         self._session.add(user)
