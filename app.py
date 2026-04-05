@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 from common.const import APP_TITLE, APP_HOST, APP_PORT, HEALTH_ENDPOINT, MESSAGE_OK
 from database import engine, init_db
-from routers import auth_pages_router, chat_pages_router, kb_pages_router, pages_router
+from routers import auth_pages_router, chat_pages_router, kb_pages_router, pages_router, agent_pages_router
 
 
 @asynccontextmanager
@@ -30,6 +30,7 @@ app.include_router(auth_pages_router)
 app.include_router(chat_pages_router)
 app.include_router(kb_pages_router)
 app.include_router(pages_router)
+app.include_router(agent_pages_router)
 
 
 @app.get(HEALTH_ENDPOINT)

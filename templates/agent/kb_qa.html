@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>智能助手 - 知识库问答增强版</title>
+    <link rel="stylesheet" href="/static/app.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <main class="container">
+      <div class="card">
+        <div class="row" style="align-items:flex-start">
+          <div>
+            <h1 class="title" style="margin:0">智能助手</h1>
+            <p class="muted" style="margin:6px 0 0">基于多个知识库和网络搜索的增强版问答系统</p>
+          </div>
+          <a class="btn" href="/">返回首页</a>
+        </div>
+
+        {% if error %}
+          <div class="alert alert-error" role="alert">{{ error }}</div>
+        {% endif %}
+
+        <!-- 问题输入区 -->
+        <div style="margin-top:18px" class="card">
+          <div style="font-weight:700;margin-bottom:8px">输入问题</div>
+          <form id="question-form" class="form">
+            <input type="text" id="question" class="input" placeholder="请输入您的问题..." required style="width:100%" />
+            
+            <div style="margin-top:12px">
+              <div style="font-size:14px;margin-bottom:8px">选择知识库</div>
+              <div id="knowledge-bases" class="row" style="flex-wrap:wrap;gap:8px">
+                <!-- 知识库选项将通过JavaScript动态添加 -->
+              </div>
+            </div>
+            
+            <div style="margin-top:12px">
+              <label class="check">
+                <input type="checkbox" id="use-web-search" checked />
+                <span>使用网络搜索获取最新信息</span>
+              </label>
+            </div>
+            
+            <button type="submit" class="btn btn-primary" style="margin-top:12px">提交问题</button>
+          </form>
+        </div>
+
+        <!-- 执行状态区 -->
+        <div style="margin-top:18px" class="card">
+          <div style="font-weight:700;margin-bottom:8px">执行状态</div>
+          <div id="execution-status" class="bg-gray-50 p-4 rounded-lg">
+            <div class="text-muted">请输入问题并提交</div>
+          </div>
+        </div>
+
+        <!-- 工具调用可视化 -->
+        <div style="margin-top:18px" class="card">
+          <div style="font-weight:700;margin-bottom:8px">工具调用</div>
+          <div id="tool-calls" class="bg-gray-50 p-4 rounded-lg">
+            <div class="text-muted">工具调用信息将在此显示</div>
+          </div>
+        </div>
+
+        <!-- 结果展示区 -->
+        <div style="margin-top:18px" class="card">
+          <div style="font-weight:700;margin-bottom:8px">回答结果</div>
+          <div id="result" class="bg-gray-50 p-4 rounded-lg">
+            <div class="text-muted">回答结果将在此显示</div>
+          </div>
+        </div>
+
+        <!-- 信息源展示 -->
+        <div style="margin-top:18px" class="card">
+          <div style="font-weight:700;margin-bottom:8px">信息源</div>
+          <div id="sources" class="bg-gray-50 p-4 rounded-lg">
+            <div class="text-muted">信息源将在此显示</div>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        // 页面加载时获取知识库列表
+        document.addEventListener('DOMContentLoaded', function() {
+          // 模拟知识库数据
+          const knowledgeBases = [
+            { id: 'kb1', name: 'LangChain文档' },
+            { id: 'kb2', name: 'Python编程' },
+            { id: 'kb3', name: '机器学习' }
+          ];
+          
+          // 渲染知识库选项
+          const kbContainer = document.getElementById('knowledge-bases');
+          knowledgeBases.forEach(kb => {
+            const div = document.createElement('div');
+            div.innerHTML = `
+              <label class="check">
+                <input type="checkbox" name="knowledge_bases" value="${kb.id}" checked />
+                <span>${kb.name}</span>
+              </label>
+            `;
+            kbContainer.appendChild(div);
+          });
+
+          // 表单提交处理
+          document.getElementById('question-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const question = document.getElementById('question').value;
+            const useWebSearch = document.getElementById('use-web-search').checked;
+            const knowledgeBases = Array.from(document.querySelectorAll('input[name="knowledge_bases"]:checked')).map(input => input.value);
+            
+            // 清空之前的结果
+            document.getElementById('execution-status').innerHTML = '<div class="text-muted">正在处理...</div>';
+            document.getElementById('tool-calls').innerHTML = '<div class="text-muted">工具调用信息将在此显示</div>';
+            document.getElementById('result').innerHTML = '<div class="text-muted">回答结果将在此显示</div>';
+            document.getElementById('sources').innerHTML = '<div class="text-muted">信息源将在此显示</div>';
+            
+            // 发送请求
+            fetch('/api/agent/kb-qa', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                question: question,
+                knowledge_bases: knowledgeBases,
+                use_web_search: useWebSearch
+              })
+            })
+            .then(response => response.json())
+            .then(data => {
+              if (data.execution_id) {
+                // 开始轮询执行状态
+                startPolling(data.execution_id);
+              } else {
+                document.getElementById('execution-status').innerHTML = '<div class="text-error">请求失败</div>';
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              document.getElementById('execution-status').innerHTML = '<div class="text-error">请求失败</div>';
+            });
+          });
+        });
+
+        // 开始轮询获取执行状态
+        function startPolling(executionId) {
+          const statusContainer = document.getElementById('execution-status');
+          const toolCallsContainer = document.getElementById('tool-calls');
+          const resultContainer = document.getElementById('result');
+          const sourcesContainer = document.getElementById('sources');
+          
+          let pollingInterval;
+          
+          function pollExecutionStatus() {
+            fetch(`/api/agent/execution/${executionId}`)
+              .then(response => response.json())
+              .then(data => {
+                // 清空之前的状态
+                statusContainer.innerHTML = '';
+                toolCallsContainer.innerHTML = '';
+                
+                // 显示所有步骤
+                data.steps.forEach(step => {
+                  if (step.type === 'think') {
+                    statusContainer.innerHTML += `
+                      <div style="margin-bottom:8px;padding:8px;background-blue-50 rounded">
+                        <div style="font-size:12px;color-blue-600">思考</div>
+                        <div>${step.content}</div>
+                        <div style="font-size:10px;color-gray-500">${new Date(step.timestamp).toLocaleString()}</div>
+                      </div>
+                    `;
+                  } else if (step.type === 'tool') {
+                    statusContainer.innerHTML += `
+                      <div style="margin-bottom:8px;padding:8px;background-green-50 rounded">
+                        <div style="font-size:12px;color-green-600">工具调用</div>
+                        <div>${step.content}</div>
+                        <div style="font-size:10px;color-gray-500">${new Date(step.timestamp).toLocaleString()}</div>
+                      </div>
+                    `;
+                    
+                    // 显示工具调用详情
+                    toolCallsContainer.innerHTML += `
+                      <div style="margin-bottom:12px;padding:12px;background-white border border-gray-200 rounded">
+                        <div style="font-weight:600">${step.tool_info.name}</div>
+                        <div style="font-size:12px;margin-top:4px">参数: ${JSON.stringify(step.tool_info.params)}</div>
+                        <div style="font-size:12px;margin-top:4px">结果: ${step.tool_info.result.substring(0, 200)}${step.tool_info.result.length > 200 ? '...' : ''}</div>
+                      </div>
+                    `;
+                  } else if (step.type === 'error') {
+                    statusContainer.innerHTML += `
+                      <div style="margin-bottom:8px;padding:8px;background-red-50 rounded">
+                        <div style="font-size:12px;color-red-600">错误</div>
+                        <div>${step.content}</div>
+                        <div style="font-size:10px;color-gray-500">${new Date(step.timestamp).toLocaleString()}</div>
+                      </div>
+                    `;
+                  }
+                });
+                
+                // 显示结果
+                if (data.result) {
+                  statusContainer.innerHTML += `
+                    <div style="margin-bottom:8px;padding:8px;background-purple-50 rounded">
+                      <div style="font-size:12px;color-purple-600">结果</div>
+                      <div>${data.result}</div>
+                      <div style="font-size:10px;color-gray-500">${new Date().toLocaleString()}</div>
+                    </div>
+                  `;
+                  
+                  // 显示最终结果
+                  resultContainer.innerHTML = `
+                    <div style="white-space:pre-wrap">${data.result}</div>
+                  `;
+                }
+                
+                // 显示信息源
+                if (data.sources && data.sources.length > 0) {
+                  sourcesContainer.innerHTML = '';
+                  data.sources.forEach(source => {
+                    sourcesContainer.innerHTML += `
+                      <div style="margin-bottom:8px;padding:8px;background-white border border-gray-200 rounded">
+                        <div style="font-weight:600">${source.title}</div>
+                        ${source.type === 'web' ? `<div style="font-size:12px;color-blue-600"><a href="${source.url}" target="_blank">${source.url}</a></div>` : ''}
+                        <div style="font-size:12px;color-gray-500">${source.type === 'knowledge_base' ? '知识库' : '网络'}</div>
+                      </div>
+                    `;
+                  });
+                }
+                
+                // 检查是否已完成
+                if (data.status === 'completed' || data.status === 'failed') {
+                  clearInterval(pollingInterval);
+                }
+              })
+              .catch(error => {
+                console.error('Error polling execution status:', error);
+                clearInterval(pollingInterval);
+              });
+          }
+          
+          // 开始轮询
+          pollExecutionStatus();
+          pollingInterval = setInterval(pollExecutionStatus, 1000); // 每秒轮询一次
+        }
+      </script>
+    </main>
+  </body>
+</html>
