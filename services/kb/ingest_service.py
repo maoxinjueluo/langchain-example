@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import List, Optional
 
 import anyio
-# from docx import Document as DocxDocument
+from docx import Document as DocxDocument
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from pypdf import PdfReader
@@ -33,13 +33,12 @@ def _read_pdf(path: Path) -> str:
 
 def _read_docx(path: Path) -> str:
     # 暂时注释掉，因为DocxDocument未导入
-    # d = DocxDocument(str(path))
-    # parts: List[str] = []
-    # for p in d.paragraphs:
-    #     if p.text:
-    #         parts.append(p.text)
-    # return "\n".join(parts)
-    raise NotImplementedError("DocxDocument not imported")
+    d = DocxDocument(str(path))
+    parts: List[str] = []
+    for p in d.paragraphs:
+        if p.text:
+            parts.append(p.text)
+    return "\n".join(parts)
 
 
 def _load_text(path: Path) -> str:
